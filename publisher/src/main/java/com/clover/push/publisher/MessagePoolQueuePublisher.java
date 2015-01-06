@@ -1,7 +1,6 @@
 package com.clover.push.publisher;
 
 import com.clover.push.message.DefaultPushMessage;
-import com.clover.push.message.Event;
 import com.clover.push.message.PushMessage;
 import com.clover.push.redis.RedisPushUtils;
 
@@ -97,8 +96,8 @@ class MessagePoolQueuePublisher implements Runnable {
     public void processMessage(Jedis conn, String clientKey, PushMessage message, int timeoutSec) {
         String messageName = message.getEvent().getName();
         if (messageName != null && enqueuedMessageTypes.add(clientKey + ":" + messageName)) {
-            if (Event.SEND_DEBUG.equals(message.getEvent()) || Event.REBOOT.equals(message.getEvent())) {
-                enqueueNonPersistentEvent(conn, clientKey, messageName);
+            if (!message.getEvent().isPersistent()) {
+                enqueueNonPersistentEvent(conn, clientKey, message.getEvent().getName());
             } else if (message.getEvent().shouldGroup()) {
                 enqueueSimpleEvent(conn, clientKey, messageName);
                 deviceQueuesToNotify.add(clientKey);

@@ -1,5 +1,6 @@
-package com.clover.push.server.handler;
+package com.clover.push.server.netty.handler;
 
+import com.clover.push.message.ConnectMessage;
 import com.clover.push.message.encoder.SSEPushEncoder;
 import com.clover.push.message.encoder.WebSocketPushEncoder;
 
@@ -157,7 +158,7 @@ public class WebSocketHandler extends ChannelDuplexHandler {
                         handshakeComplete = true;
                         sendKeepAlive(ctx);
                         ctx.fireChannelRegistered();
-                        ctx.fireChannelRead(req);
+                        ctx.fireChannelRead(new ConnectMessage(req.headers().get("X-CLIENT-ID")));
                     } else {
                         logger.error("Unable to successfully handshake", future.cause());
                     }

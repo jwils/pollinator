@@ -23,13 +23,15 @@ import java.io.IOException;
 public class RedisPushUtils {
     private static final Logger logger = LoggerFactory.getLogger(RedisPushUtils.class);
 
-    public static final String SUBSCRIBER_QUEUE_LIST = "p:sq";
+    private static final String PUSH_PREFIX = "A::";
 
-    private static final String QUEUE_CLIENT_SET_PREFIX = "p::cs::";
-    private static final String GLOBAL_SUBSCRIBER_QUEUE_PREFIX = "p::sq::";
-    private static final String MESSAGE_ID_COUNTER_QUEUE_PREFIX = "p::mc::";
-    private static final String CLIENT_QUEUE_PREFIX = "p::c::";
-    private static final String CLIENT_PENDING_QUEUE_PREFIX = "p::pc::";
+    public static final String SUBSCRIBER_QUEUE_LIST = PUSH_PREFIX + "sq";
+
+    private static final String QUEUE_CLIENT_SET_PREFIX = PUSH_PREFIX + "cs::";
+    private static final String GLOBAL_SUBSCRIBER_QUEUE_PREFIX = PUSH_PREFIX + "sq::";
+    private static final String MESSAGE_ID_COUNTER_QUEUE_PREFIX = PUSH_PREFIX + "mc::";
+    private static final String CLIENT_QUEUE_PREFIX = PUSH_PREFIX + "c::";
+    private static final String CLIENT_PENDING_QUEUE_PREFIX = PUSH_PREFIX + "pc::";
     private static final String MESSAGE_KEY = "::m::";
 
     public static final ObjectMapper mapper;

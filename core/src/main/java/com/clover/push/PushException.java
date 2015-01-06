@@ -8,4 +8,8 @@ public class PushException extends Exception {
     public PushException(String reason) {
         super(reason);
     }
+
+    public PushException(Exception cause) {
+        super(cause);
+    }
 }

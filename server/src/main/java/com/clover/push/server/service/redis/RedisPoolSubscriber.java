@@ -1,13 +1,13 @@
 package com.clover.push.server.service.redis;
 
-import com.clover.push.server.client.PushClientListener;
 import com.clover.push.message.AckMessage;
 import com.clover.push.message.DefaultPushMessage;
 import com.clover.push.message.Event;
 import com.clover.push.message.PushMessage;
 import com.clover.push.redis.RedisPushUtils;
 import com.clover.push.redis.RedisTask;
-import com.clover.push.PushMessageSubscriber;
+import com.clover.push.server.client.ServerClientListener;
+import com.clover.push.server.service.PushMessageSubscriber;
 
 
 import com.clover.push.util.Ids;
@@ -46,7 +46,7 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
 
     private volatile boolean stopped = true;
     private Queue<RedisTask> redisTaskQueue;
-    private Map<String, PushClientListener> clients;
+    private Map<String, ServerClientListener> clients;
     private Thread thread;
 
     public RedisPoolSubscriber(JedisPool pool, int poolId) {
@@ -54,7 +54,7 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
         this.subscriberName = RedisPushUtils.getSubscriberName(subscriberHash, Integer.toString(poolId));
         this.pool = pool;
         this.poolId = poolId;
-        this.clients = new ConcurrentHashMap<String, PushClientListener>();
+        this.clients = new ConcurrentHashMap<String, ServerClientListener>();
         this.redisTaskQueue = new ConcurrentLinkedQueue<RedisTask>();
     }
 
@@ -111,9 +111,9 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
     }
 
     @Override
-    public void registerClient(final PushClientListener client) {
+    public void registerClient(final ServerClientListener client) {
         logger.debug("Adding device[" + client.id() + "] to queue");
-        PushClientListener oldClient = clients.put(client.id(), client);
+        ServerClientListener oldClient = clients.put(client.id(), client);
         if (oldClient != null && oldClient != client) {
             logger.info("Device[" + client.id() + "] is already connected. Overwriting.");
             oldClient.disconnect();
@@ -124,7 +124,7 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
     @Override
     public void removeClient(final String clientId) {
         logger.debug("Removing device[" + clientId + "] from queue");
-        PushClientListener client = clients.remove(clientId);
+        ServerClientListener client = clients.remove(clientId);
         if (client != null) {
             client.disconnect();
             enqueueTask(new RemoveClientTask(clientId));
@@ -260,7 +260,7 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
         if (message.getId() != null) {
             id = message.getId().toString();
         } else if (message.getEvent() != null) {
-            id = message.getEvent();
+            id = message.getEvent().getName();
         } else {
             return;
         }
@@ -279,7 +279,7 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
     }
 
     private void getAndSendPendingMessagesToClient(Jedis conn, String clientId) {
-        PushClientListener client = clients.get(clientId);
+        ServerClientListener client = clients.get(clientId);
         if (client == null) {
             //Client is no longer connected
             return;
@@ -297,7 +297,7 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
 
 
     private void getAndSendMessagesToClient(Jedis conn, String clientId) {
-        PushClientListener client = clients.get(clientId);
+        ServerClientListener client = clients.get(clientId);
         if (client == null) {
             //Client is no longer connected
             return;
@@ -328,7 +328,7 @@ class RedisPoolSubscriber implements Runnable, PushMessageSubscriber {
         String[] parts = clientMessage.split(":");
         String clientId = parts[0];
         Event event = new Event(parts[1], false);
-        PushClientListener client = clients.get(clientId);
+        ServerClientListener client = clients.get(clientId);
         if (client == null) {
             //Client is not connected.
             return;

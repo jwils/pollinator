@@ -1,9 +1,9 @@
 package com.clover.push.server.service.redis;
 
-import com.clover.push.server.client.PushClientListener;
 import com.clover.push.message.AckMessage;
 import com.clover.push.redis.RedisPushUtils;
-import com.clover.push.PushMessageSubscriber;
+import com.clover.push.server.client.ServerClientListener;
+import com.clover.push.server.service.PushMessageSubscriber;
 
 import com.google.common.collect.Lists;
 
@@ -71,7 +71,7 @@ public class RedisPushMessageSubscriber implements PushMessageSubscriber {
     }
 
     @Override
-    public void registerClient(PushClientListener client) {
+    public void registerClient(ServerClientListener client) {
         int poolId = RedisPushUtils.selectPool(client.id(), numberOfPools);
         //Select a random subscriber. With 1 subscriber per pool this will always return 0.
         int subscriberId = RedisPushUtils.selectPool(client.id() + "RND", subscribersPerPool);

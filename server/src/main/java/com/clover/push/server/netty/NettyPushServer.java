@@ -1,9 +1,12 @@
 package com.clover.push.server.netty;
 
-import com.clover.push.PushMessageSubscriber;
+import com.clover.push.PushServer;
+import com.clover.push.server.PushServerConfig;
+import com.clover.push.server.service.PushMessageSubscriber;
 import com.clover.push.server.service.redis.RedisPushMessageSubscriber;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -23,13 +26,14 @@ import java.util.Random;
 
 import redis.clients.jedis.JedisPool;
 
-public class PushServer {
-    private static final Logger logger = LoggerFactory.getLogger(PushServer.class);
+public class NettyPushServer implements PushServer {
+    private static final Logger logger = LoggerFactory.getLogger(NettyPushServer.class);
     private static final Random RND = new Random();
     private final List<JedisPool> redisPools;
+    ChannelFuture serverFuture;
 
 
-    public PushServer(List<JedisPool> redisPools) {
+    public NettyPushServer(List<JedisPool> redisPools) {
         this.redisPools = redisPools;
     }
 
@@ -42,29 +46,34 @@ public class PushServer {
         InternalLoggerFactory.setDefaultFactory(new Log4JLoggerFactory());
 
         executors = new DefaultEventExecutorGroup(8);
-
-        int pushKeepAliveSecs = 4 * 60 + 20;
-        int writeTimeout = 60 * 60;
         pushMessageSubscriber = new RedisPushMessageSubscriber(redisPools, 1);
 
 
         ChannelInitializer pushInitializer =
                 new PushServerInitializer(executors,
                         pushMessageSubscriber,
-                        writeTimeout,
-                        pushKeepAliveSecs,
+                        PushServerConfig.CLIENT_FORCE_DISCONNECT_TIME_SEC,
+                        PushServerConfig.KEEP_ALIVE_INTERVAL_SEC,
                         RND);
 
 
         pushMessageSubscriber.start();
-        new ServerBootstrap().channel(NioServerSocketChannel.class).group(new NioEventLoopGroup(4)).childHandler(pushInitializer).bind(8013).syncUninterruptibly();
+        serverFuture = new ServerBootstrap().channel(NioServerSocketChannel.class).group(new NioEventLoopGroup(4)).childHandler(pushInitializer).bind(8013);
+    }
+
+    public void stop() {
+        pushMessageSubscriber.stop();
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException ignore) {}
+        executors.shutdownGracefully();
     }
 
     public static void main(String[] args) {
         final GenericObjectPool.Config conf = new GenericObjectPool.Config();
         final ArrayList<JedisPool> pools = new ArrayList<JedisPool>();
-        pools.add(new JedisPool(conf, "localhost", 6379, 1000, "test"));
+        pools.add(new JedisPool(conf, "localhost", 6379, 1000, null));
 
-        new PushServer(pools).start();
+        new NettyPushServer(pools).start();
     }
 }

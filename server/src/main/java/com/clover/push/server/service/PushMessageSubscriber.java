@@ -1,6 +1,7 @@
-package com.clover.push;
+package com.clover.push.server.service;
 
 import com.clover.push.message.AckMessage;
+import com.clover.push.server.client.ServerClientListener;
 
 /**
  * User: josh
@@ -14,7 +15,7 @@ public interface PushMessageSubscriber {
 
     public boolean isRunning();
 
-    public void registerClient(PushClientListener client);
+    public void registerClient(ServerClientListener client);
 
     public void removeClient(String clientId);
 

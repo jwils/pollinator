@@ -2,8 +2,10 @@ package com.clover.push.server.client;
 
 
 import com.clover.push.client.PushClient;
+import com.clover.push.client.PushClientListener;
+import com.clover.push.client.PushConnection;
 import com.clover.push.message.PushMessage;
-import com.clover.push.PushMessageSubscriber;
+import com.clover.push.server.service.PushMessageSubscriber;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,15 +14,15 @@ import org.slf4j.LoggerFactory;
  * User: josh
  * Date: 1/3/14
  */
-public class DefaultPushClientListener implements PushClientListener, PushClient {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultPushClientListener.class);
+public class ServerClientListener implements PushClientListener, PushClient {
+    private static final Logger logger = LoggerFactory.getLogger(ServerClientListener.class);
 
     private final String id;
 
     private PushConnection connection;
     private PushMessageSubscriber pushService;
 
-    public DefaultPushClientListener(String id, PushMessageSubscriber pushService) {
+    public ServerClientListener(String id, PushMessageSubscriber pushService) {
         if (pushService == null) {
             throw new NullPointerException("pushService");
         }
@@ -30,7 +32,12 @@ public class DefaultPushClientListener implements PushClientListener, PushClient
 
     @Override
     public String id() {
-        return id;
+        return id.toLowerCase();
+    }
+
+    @Override
+    public void connect() {
+
     }
 
     @Override
@@ -55,11 +62,9 @@ public class DefaultPushClientListener implements PushClientListener, PushClient
         }
     }
 
-    @Override
     public void onWriteSuccess(PushMessage message) {
     }
 
-    @Override
     public void onWriteFail(PushMessage message, Throwable cause) {
         logger.error("Failed to write message", cause);
         connection.disconnect();

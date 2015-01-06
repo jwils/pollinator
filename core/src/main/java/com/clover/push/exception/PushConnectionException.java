@@ -1,4 +1,6 @@
-package com.clover.push;
+package com.clover.push.exception;
+
+import com.clover.push.PushException;
 
 import java.io.IOException;
 
@@ -9,5 +11,9 @@ import java.io.IOException;
 public class PushConnectionException extends PushException {
     public PushConnectionException(String problem) {
         super(problem);
+    }
+
+    public PushConnectionException(Exception cause) {
+        super(cause);
     }
 }

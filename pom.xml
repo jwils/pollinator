@@ -13,6 +13,8 @@
         <module>publisher</module>
         <module>client</module>
         <module>all</module>
+        <module>testsuite</module>
+        <module>example</module>
     </modules>
 
     <dependencyManagement>

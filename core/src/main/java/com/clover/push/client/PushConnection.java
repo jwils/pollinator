@@ -1,4 +1,4 @@
-package com.clover.push.server.client;
+package com.clover.push.client;
 
 import com.clover.push.message.PushMessage;
 

@@ -1,12 +1,12 @@
-package com.clover.push.server.handler;
+package com.clover.push.server.netty.handler;
 
-import com.clover.push.server.client.DefaultPushClientListener;
+import com.clover.push.server.client.ServerClientListener;
 import com.clover.push.server.client.NettyPushConnection;
-import com.clover.push.server.client.PushClientListener;
+import com.clover.push.client.PushClientListener;
 import com.clover.push.message.AckMessage;
 import com.clover.push.message.ConnectMessage;
 import com.clover.push.redis.RedisPushUtils;
-import com.clover.push.PushMessageSubscriber;
+import com.clover.push.server.service.PushMessageSubscriber;
 
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -23,7 +23,7 @@ public class PushMessageHandler extends ChannelDuplexHandler {
         this.pushMessageSubscriber = subscriber;
     }
 
-    private PushClientListener client;
+    private ServerClientListener client;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -46,7 +46,7 @@ public class PushMessageHandler extends ChannelDuplexHandler {
 
     public void handleRegister(ChannelHandlerContext ctx, ConnectMessage msg) {
 
-        client = new DefaultPushClientListener(msg.getClientId(), pushMessageSubscriber);
+        client = new ServerClientListener(msg.getClientId(), pushMessageSubscriber);
         client.onConnect(new NettyPushConnection(client, ctx));
 
         pushMessageSubscriber.registerClient(client);

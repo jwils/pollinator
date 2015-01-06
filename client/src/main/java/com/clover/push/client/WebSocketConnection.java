@@ -1,5 +1,9 @@
-package com.clover.push;
+package com.clover.push.client;
 
+import com.clover.push.PushException;
+import com.clover.push.exception.PushConnectionException;
+import com.clover.push.message.PushMessage;
+import com.clover.push.redis.RedisPushUtils;
 import com.clover.push.util.Base64;
 
 import java.io.IOException;
@@ -7,6 +11,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,31 +23,49 @@ import java.util.concurrent.Executors;
 
 import javax.net.SocketFactory;
 
-public class WebSocketConnection {
-    private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-
-    private static final int CONNECT_TIMEOUT = 30 * 1000; // 30s
-    // This value must be larger than the keep-alive interval set by the server.
-    private static final int READ_TIMEOUT = 5 * 60 * 1000; // 5min
-
+public class WebSocketConnection implements PushConnection {
     private static final Random RANDOM = new Random(System.currentTimeMillis());
     private static final String WEBSOCKET_VERSION = "13";
+    private static final String WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
     private final ExecutorService exec = Executors.newSingleThreadExecutor();
 
+    private final String id;
     private final Map<String, String> headers;
     private final Listener callback;
     private HybiParser mParser;
     private SocketFactory socketFactory = null;
     public Socket socket;
 
-    public WebSocketConnection(SocketFactory socketFactory, Map<String, String> headers, Listener callback) {
+    public WebSocketConnection(String id, SocketFactory socketFactory, Map<String, String> headers, Listener callback) {
+        this.id = id;
         this.socketFactory = socketFactory;
         this.headers = headers;
         this.callback = callback;
     }
-    public WebSocketConnection(Map<String, String> headers, Listener callback) {
-        this(SocketFactory.getDefault(), headers, callback);
+    public WebSocketConnection(String id, Map<String, String> headers, Listener callback) {
+        this(id, SocketFactory.getDefault(), headers, callback);
+    }
+
+
+    @Override
+    public void writeMessage(PushMessage message) {
+        send(RedisPushUtils.encodeMessage(message));
+    }
+
+    @Override
+    public boolean isConnected() {
+        return socket != null && socket.isConnected();
+    }
+
+    @Override
+    public void disconnect() {
+        mParser.close(0, "Disconnect");
+    }
+
+    @Override
+    public void disconnect(int reason, String reasonText) {
+        mParser.close(reason, reasonText);
     }
 
     private Map<String, String> getWebSocketUpgradeHeaders(String host, String webSocketSecret) {
@@ -52,6 +75,7 @@ public class WebSocketConnection {
         headers.put("Host", host);
         headers.put("Sec-WebSocket-Key", webSocketSecret);
         headers.put("Sec-WebSocket-Version", WEBSOCKET_VERSION);
+        headers.put("X-CLIENT-ID", id);
         return headers;
     }
 
@@ -63,19 +87,24 @@ public class WebSocketConnection {
         out.flush();
     }
 
-    public void connect(URL url) throws Exception {
+    public void connect(URL url) throws PushException {
         int port = url.getPort() != -1 ? url.getPort() : (url.getProtocol().equals("https") ? 443 : 80);
 
         String path = url.getPath();
 
-
-        socket = socketFactory.createSocket();
-        socket.setSoTimeout(READ_TIMEOUT);
-        socket.connect(new InetSocketAddress(url.getHost(), port), CONNECT_TIMEOUT);
+        try {
+            socket = socketFactory.createSocket();
+            socket.setSoTimeout(PushClientConfig.READ_TIMEOUT);
+            socket.connect(new InetSocketAddress(url.getHost(), port), PushClientConfig.CONNECT_TIMEOUT);
+        } catch (IOException e) {
+            throw new PushConnectionException(e);
+        }
 
         String secret = createSecret();
         Map<String, String> connectHeaders = new HashMap<String, String>();
-        connectHeaders.putAll(headers);
+        if (headers != null) {
+            connectHeaders.putAll(headers);
+        }
         connectHeaders.putAll(getWebSocketUpgradeHeaders(url.getHost(), secret));
 
         try {
@@ -110,8 +139,14 @@ public class WebSocketConnection {
             callback.onConnect();
             mParser = new HybiParser(this);
             mParser.start(stream);
+        } catch (SocketException e) {
+            throw new PushException(e);
+        } catch (IOException e) {
+            throw new PushException(e);
         } finally {
-            if (socket != null) socket.close();
+            try {
+                if (socket != null) socket.close();
+            } catch (IOException ignore) {}
         }
     }
 

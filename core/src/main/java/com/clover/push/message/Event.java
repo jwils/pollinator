@@ -8,29 +8,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * Date: 1/6/14
  */
 public class Event {
-    public static final Event ITEM_SYNC = new Event("item_sync", true);
-    public static final Event MASTER_CLEAR = new Event("master_clear", false);
-    public static final Event REFRESH_MERCHANT_PROPS = new Event("refresh_merchant_props", true);
-    public static final Event APPS = new Event("apps", true);
-    public static final Event ROM_UPGRADE = new Event("rom_upgrade", true);
-    public static final Event RELOAD_KEY = new Event("reloadkey", true);
-    public static final Event SEND_DEBUG = new Event("send_debug", false);
-    public static final Event REBOOT = new Event("reboot", false);
-    public static final Event KEEP_ALIVE = new Event("keepalive", true);
-    public static final Event FAILED_TRANSACTION = new Event("failed_transaction", false);
-    public static final Event FIRE_ORDER = new Event("fire_order", false);
-
     private final String eventName;
     private final boolean shouldGroup;
+    private final boolean persistent;
 
     public Event(@JsonProperty("name") String eventName) {
-        this.eventName = eventName;
-        shouldGroup = false;
+        this(eventName, false, true);
     }
 
     public Event(String eventName, boolean shouldGroup) {
+        this(eventName, shouldGroup, true);
+    }
+
+    private Event(String eventName, boolean shouldGroup, boolean persistent) {
+        if (!persistent && !shouldGroup) {
+            throw new IllegalStateException("Persistent messages must be grouped.");
+        }
         this.eventName = eventName;
         this.shouldGroup = shouldGroup;
+        this.persistent = persistent;
+    }
+
+    public Event newNonPersistentEvent(String name) {
+        return new Event(name, true, true);
     }
 
     public String getName() {
@@ -39,6 +39,10 @@ public class Event {
 
     public boolean shouldGroup() {
         return shouldGroup;
+    }
+
+    public boolean isPersistent() {
+        return persistent;
     }
 
     @Override

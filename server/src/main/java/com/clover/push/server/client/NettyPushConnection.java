@@ -1,5 +1,7 @@
 package com.clover.push.server.client;
 
+import com.clover.push.client.PushClientListener;
+import com.clover.push.client.PushConnection;
 import com.clover.push.message.PushMessage;
 
 import io.netty.channel.Channel;
@@ -13,12 +15,12 @@ import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
  * Date: 1/3/14
  */
 public class NettyPushConnection implements PushConnection {
-    private final PushClientListener client;
+    private final ServerClientListener client;
 
     private ChannelHandlerContext nettyCtx;
     private ChannelFutureListener closeFuture;
 
-    public NettyPushConnection(final PushClientListener client,
+    public NettyPushConnection(final ServerClientListener client,
                                ChannelHandlerContext nettyCtx) {
         this.client = client;
         this.nettyCtx = nettyCtx;
@@ -41,7 +43,7 @@ public class NettyPushConnection implements PushConnection {
 
     @Override
     public boolean isConnected() {
-        return nettyCtx.channel().isWritable();
+        return nettyCtx.channel().isOpen();
     }
 
 

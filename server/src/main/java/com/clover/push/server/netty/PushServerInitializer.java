@@ -1,8 +1,8 @@
 package com.clover.push.server.netty;
 
-import com.clover.push.server.handler.PushMessageHandler;
-import com.clover.push.server.handler.WebSocketHandler;
-import com.clover.push.PushMessageSubscriber;
+import com.clover.push.server.netty.handler.PushMessageHandler;
+import com.clover.push.server.netty.handler.WebSocketHandler;
+import com.clover.push.server.service.PushMessageSubscriber;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -21,19 +21,19 @@ import java.util.Random;
 class PushServerInitializer extends ChannelInitializer<SocketChannel> {
     private final EventExecutorGroup eventExecutors;
     private final Random rnd;
-    private final long idleTimeout;
+    private final long connectionTimeLimitSec;
     private final int pingIntervalSec;
     private final PushMessageSubscriber pushMessageSubscriber;
 
     public PushServerInitializer(EventExecutorGroup eventExecutors,
                                  PushMessageSubscriber pushMessageSubscriber,
-                                 long idleTimeout,
+                                 long connectionTimeLimitSec,
                                  int pingIntervalSec,
                                  Random rnd) {
         this.eventExecutors = eventExecutors;
         this.rnd = rnd;
         this.pushMessageSubscriber = pushMessageSubscriber;
-        this.idleTimeout = idleTimeout;
+        this.connectionTimeLimitSec = connectionTimeLimitSec;
         this.pingIntervalSec = pingIntervalSec;
     }
 
@@ -41,10 +41,10 @@ class PushServerInitializer extends ChannelInitializer<SocketChannel> {
     protected void initChannel(SocketChannel socketChannel) throws Exception {
         ChannelPipeline pipeline = socketChannel.pipeline();
 
-        int timeout = (int) Math.round(idleTimeout * ((rnd.nextDouble()) / 5 + 0.9)); // idleTimerBase +/- randomly 10% - to balance the reconnections
+        int timeout = (int) Math.round(connectionTimeLimitSec * ((rnd.nextDouble()) / 5 + 0.9)); // idleTimerBase +/- randomly 10% - to balance the reconnections
         int pingIntervalRandomized = (int) Math.round(pingIntervalSec * ((rnd.nextDouble()) / 5 + 0.9));
         // http stuff
-        pipeline.addLast("idleTimeout", new IdleStateHandler((int) (pingIntervalSec * 1.1 + 3), pingIntervalRandomized, 0)); //Config has ping interval in ms.
+        pipeline.addLast("pingHandler", new IdleStateHandler((int) (pingIntervalSec * 1.1 + 3), pingIntervalRandomized, 0));
         pipeline.addLast("httpCodec", new HttpServerCodec());
         pipeline.addLast("chunkAggregator", new HttpObjectAggregator(512));
 

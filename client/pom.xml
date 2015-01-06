@@ -7,9 +7,10 @@
         <groupId>com.clover</groupId>
         <version>0.1</version>
     </parent>
-    <artifactId>push-client</artifactId>
-    <packaging>pom</packaging>
-    <name>Clover Push Parent</name>
+
+    <artifactId>pollinator-client</artifactId>
+    <name>Clover Push Client</name>
+
     <dependencies>
         <dependency>
             <groupId>com.clover</groupId>

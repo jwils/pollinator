@@ -28,7 +28,7 @@ public class RedisPushPublisher implements PushMessagePublisher {
     private static final Logger logger = LoggerFactory.getLogger(RedisPushPublisher.class);
     //DEFAULT TIMEOUT 5 days.
     private static final int DEFAULT_TIMEOUT_SEC = 60 * 60 * 24 * 5;
-    private static final int PUSH_PUBLISH_INTERVAL_MS = 5000; // 5 Seconds
+    private static final int PUSH_PUBLISH_INTERVAL_MS = 500; // 0.5 Seconds
 
     private List<BlockingQueue<PushMessageHolder>> messageQueues;
     private List<MessagePoolQueuePublisher> messagePools;

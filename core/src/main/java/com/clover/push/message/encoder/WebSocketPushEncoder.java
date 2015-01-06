@@ -18,7 +18,7 @@ import java.io.IOException;
 public class WebSocketPushEncoder extends PushMessageEncoderHandler<TextWebSocketFrame> {
     private static final Logger logger = LoggerFactory.getLogger(WebSocketPushEncoder.class);
     private static final byte[] ID = "\"id\": ".getBytes(getCharacterSet());
-    private static final byte[] EVENT = "\"event\": ".getBytes(getCharacterSet());
+    private static final byte[] EVENT = "\"event\": {\"name\": ".getBytes(getCharacterSet());
     private static final byte[] DATA = "\"data\": ".getBytes(getCharacterSet());
     private static final byte[] APPID = "\"appId\": ".getBytes(getCharacterSet());
     private static final byte[] COMMA = ", ".getBytes(getCharacterSet());
@@ -44,6 +44,8 @@ public class WebSocketPushEncoder extends PushMessageEncoderHandler<TextWebSocke
         buf.writeBytes(QUOTE);
         buf.writeBytes(message.getEvent().getName().getBytes(getCharacterSet()));
         buf.writeBytes(QUOTE);
+        buf.writeBytes("}".getBytes(getCharacterSet()));
+
 
         //APP
         if (message.getAppId() != null) {
@@ -58,7 +60,9 @@ public class WebSocketPushEncoder extends PushMessageEncoderHandler<TextWebSocke
         if (message.getData() != null) {
             buf.writeBytes(COMMA);
             buf.writeBytes(DATA);
+            buf.writeBytes(QUOTE);
             buf.writeBytes(message.getData().getBytes(getCharacterSet()));
+            buf.writeBytes(QUOTE);
         }
 
         buf.writeBytes("}".getBytes(getCharacterSet()));

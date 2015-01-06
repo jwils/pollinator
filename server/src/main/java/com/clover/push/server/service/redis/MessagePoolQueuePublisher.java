@@ -94,9 +94,7 @@ class MessagePoolQueuePublisher implements Runnable {
     public void processMessage(Jedis conn, String clientKey, PushMessage message, int timeoutSec) {
         String messageName = message.getEvent().getName();
         if (messageName != null && enqueuedMessageTypes.add(clientKey + ":" + messageName)) {
-            if (Event.SEND_DEBUG.equals(message.getEvent()) || Event.REBOOT.equals(message.getEvent())) {
-                enqueueNonPersistentEvent(conn, clientKey, messageName);
-            } else if (message.getEvent().shouldGroup()) {
+            if (message.getEvent().shouldGroup()) {
                 enqueueSimpleEvent(conn, clientKey, messageName);
                 deviceQueuesToNotify.add(clientKey);
             } else {
