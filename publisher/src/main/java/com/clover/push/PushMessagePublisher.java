@@ -8,6 +8,12 @@ import com.clover.push.message.PushMessage;
  * Date: 1/13/14
  */
 public interface PushMessagePublisher {
-  public void enqueueMessage(String clientOrGroup, PushMessage message);
-  public void enqueueMessage(String clientOrGroup, PushMessage message, int timeoutSec);
+
+    public void start();
+
+    public void stop();
+
+    public void enqueueMessage(String clientOrGroup, PushMessage message);
+
+    public void enqueueMessage(String clientOrGroup, PushMessage message, int timeoutSec);
 }

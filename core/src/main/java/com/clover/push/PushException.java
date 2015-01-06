@@ -5,7 +5,7 @@ package com.clover.push;
  * Date: 3/6/14
  */
 public class PushException extends Exception {
-  public PushException(String reason) {
-    super(reason);
-  }
+    public PushException(String reason) {
+        super(reason);
+    }
 }

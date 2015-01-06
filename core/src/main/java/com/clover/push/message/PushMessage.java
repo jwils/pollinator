@@ -6,11 +6,11 @@ package com.clover.push.message;
  */
 public interface PushMessage {
 
-  public Long getId();
+    public Long getId();
 
-  public String getAppId();
+    public String getAppId();
 
-  public Event getEvent();
+    public Event getEvent();
 
-  public String getData();
+    public String getData();
 }

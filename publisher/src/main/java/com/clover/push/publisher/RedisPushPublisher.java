@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import redis.clients.jedis.JedisPool;
@@ -24,56 +25,75 @@ import static com.clover.push.redis.RedisPushUtils.selectPool;
  * Date: 1/13/14
  */
 public class RedisPushPublisher implements PushMessagePublisher {
-  private static final Logger logger = LoggerFactory.getLogger(RedisPushPublisher.class);
-  //DEFAULT TIMEOUT 5 days.
-  private static final int DEFAULT_TIMEOUT_SEC = 60 * 60 * 24 * 5;
-  private static final int PUSH_PUBLISH_INTERVAL_MS = 5000; // 5 Seconds
+    private static final Logger logger = LoggerFactory.getLogger(RedisPushPublisher.class);
+    //DEFAULT TIMEOUT 5 days.
+    private static final int DEFAULT_TIMEOUT_SEC = 60 * 60 * 24 * 5;
+    private static final int PUSH_PUBLISH_INTERVAL_MS = 5000; // 5 Seconds
 
-  private List<BlockingQueue<PushMessageHolder>> messageQueues;
-  private List<MessagePoolQueuePublisher> messagePools;
-  private int poolCount;
+    private List<BlockingQueue<PushMessageHolder>> messageQueues;
+    private List<MessagePoolQueuePublisher> messagePools;
+    private List<ScheduledFuture<?>> messagePoolExecutionFuture;
 
-  private EventExecutorGroup executor;
+    private EventExecutorGroup executor;
 
-  public RedisPushPublisher(EventExecutorGroup executor, List<JedisPool> pools) {
-    this.executor = executor;
-
-    messageQueues = Lists.newArrayList();
-    messagePools = Lists.newArrayList();
-    for (int i = 0; i < pools.size(); i++) {
-      BlockingQueue<PushMessageHolder> queue = new LinkedBlockingDeque<PushMessageHolder>();
-      messageQueues.add(queue);
-      messagePools.add(new MessagePoolQueuePublisher(queue,pools.get(i), i));
+    public RedisPushPublisher(EventExecutorGroup executor, List<JedisPool> pools) {
+        this.executor = executor;
+        messageQueues = Lists.newArrayList();
+        messagePools = Lists.newArrayList();
+        for (int i = 0; i < pools.size(); i++) {
+            BlockingQueue<PushMessageHolder> queue = new LinkedBlockingDeque<PushMessageHolder>();
+            messageQueues.add(queue);
+            messagePools.add(new MessagePoolQueuePublisher(queue, pools.get(i)));
+        }
     }
 
-    poolCount = messagePools.size();
-    for (int i = 0; i < poolCount; i++) {
-      int startDelay = PUSH_PUBLISH_INTERVAL_MS * i/poolCount;
-      executor.scheduleAtFixedRate(messagePools.get(i),
-                                   startDelay,
-                                   PUSH_PUBLISH_INTERVAL_MS,
-                                   TimeUnit.MILLISECONDS);
+    @Override
+    public synchronized void start() {
+        messagePoolExecutionFuture = Lists.newArrayList();
+        for (int i = 0; i < getNumberOfPools(); i++) {
+            int startDelay = PUSH_PUBLISH_INTERVAL_MS * i / getNumberOfPools();
+            ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(messagePools.get(i),
+                    startDelay,
+                    PUSH_PUBLISH_INTERVAL_MS,
+                    TimeUnit.MILLISECONDS);
+            messagePoolExecutionFuture.add(scheduledFuture);
+        }
     }
-  }
 
-  @Override
-  public void enqueueMessage(final String clientOrGroup, final PushMessage message) {
-    enqueueMessage(clientOrGroup, message, DEFAULT_TIMEOUT_SEC);
-  }
+    @Override
+    public synchronized void stop() {
+        //Stop All scheduledFutures
+        for (ScheduledFuture<?> scheduledFuture : messagePoolExecutionFuture) {
+            scheduledFuture.cancel(false);
+        }
+    }
 
-  @Override
-  public void enqueueMessage(String corG, final PushMessage message, final int timeoutSec) {
-    final String clientOrGroup = corG.toLowerCase();
-    offer(clientOrGroup, message, timeoutSec);
-  }
+    @Override
+    public void enqueueMessage(final String clientOrGroup, final PushMessage message) {
+        enqueueMessage(clientOrGroup, message, DEFAULT_TIMEOUT_SEC);
+    }
 
-  public void offer(String clientOrGroup, PushMessage pushMessage, int timeoutSec) {
-    PushMessageHolder holder = new PushMessageHolder();
-    holder.clientKey = clientOrGroup;
-    holder.message = pushMessage;
-    holder.timeoutSec = timeoutSec;
-    int poolId = selectPool(clientOrGroup, poolCount);
+    @Override
+    public void enqueueMessage(String corG, final PushMessage message, final int timeoutSec) {
+        final String clientOrGroup = corG.toLowerCase();
+        offer(clientOrGroup, message, timeoutSec);
+    }
 
-    messageQueues.get(poolId).offer(holder);
-  }
+    private void offer(String clientOrGroup, PushMessage pushMessage, int timeoutSec) {
+        PushMessageHolder holder = new PushMessageHolder();
+        holder.clientKey = clientOrGroup;
+        holder.message = pushMessage;
+        holder.timeoutSec = timeoutSec;
+
+        getQueueForClient(clientOrGroup).offer(holder);
+    }
+
+    private int getNumberOfPools() {
+        return messagePools.size();
+    }
+
+    private BlockingQueue<PushMessageHolder> getQueueForClient(String clientId) {
+        int poolId = selectPool(clientId, getNumberOfPools());
+        return messageQueues.get(poolId);
+    }
 }

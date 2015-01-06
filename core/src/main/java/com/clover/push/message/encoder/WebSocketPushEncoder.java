@@ -15,47 +15,55 @@ import java.io.IOException;
  * User: josh
  * Date: 1/29/14
  */
-public class WebSocketPushEncoder extends PushMessageEncoderHandler {
-  private static final Logger logger = LoggerFactory.getLogger(WebSocketPushEncoder.class);
-  private static final byte[] LFCR = "\r\n".getBytes(defaultCharacterSet);
-  private static final byte[] ID = "\"id\": ".getBytes(defaultCharacterSet);
-  private static final byte[] EVENT = "\"event\": ".getBytes(defaultCharacterSet);
-  private static final byte[] DATA = "\"data\": ".getBytes(defaultCharacterSet);
-  private static final byte[] APPID = "\"appId\": ".getBytes(defaultCharacterSet);
-  private static final byte[] comma = ", ".getBytes(defaultCharacterSet);
-  @Override
-  public Object encode(ChannelHandlerContext ctx, PushMessage message) throws IOException {
-    ByteBuf buf = ctx.alloc().buffer().clear();
+public class WebSocketPushEncoder extends PushMessageEncoderHandler<TextWebSocketFrame> {
+    private static final Logger logger = LoggerFactory.getLogger(WebSocketPushEncoder.class);
+    private static final byte[] ID = "\"id\": ".getBytes(getCharacterSet());
+    private static final byte[] EVENT = "\"event\": ".getBytes(getCharacterSet());
+    private static final byte[] DATA = "\"data\": ".getBytes(getCharacterSet());
+    private static final byte[] APPID = "\"appId\": ".getBytes(getCharacterSet());
+    private static final byte[] COMMA = ", ".getBytes(getCharacterSet());
+    private static final byte[] QUOTE = "\"".getBytes(getCharacterSet());
 
-    buf.writeBytes("{".getBytes(defaultCharacterSet));
+    @Override
+    public TextWebSocketFrame encode(ChannelHandlerContext ctx, PushMessage message) throws IOException {
+        ByteBuf buf = ctx.alloc().buffer().clear();
 
-    if (message.getId() != null) {
-      buf.writeBytes(ID);
-      buf.writeBytes("\"".getBytes());
-      buf.writeBytes(message.getId().toString().getBytes(defaultCharacterSet));
-      buf.writeBytes("\"".getBytes());
-      buf.writeBytes(comma);
-    }
-    buf.writeBytes(EVENT);
-    buf.writeBytes("\"".getBytes());
-    buf.writeBytes(message.getEvent().getName().getBytes(defaultCharacterSet));
-    buf.writeBytes("\"".getBytes());
+        buf.writeBytes("{".getBytes(getCharacterSet()));
 
-    if (message.getAppId() != null) {
-      buf.writeBytes(comma);
-      buf.writeBytes(APPID);
-      buf.writeBytes("\"".getBytes());
-      buf.writeBytes(message.getAppId().getBytes(defaultCharacterSet));
-      buf.writeBytes("\"".getBytes());
+        //ID
+        if (message.getId() != null) {
+            buf.writeBytes(ID);
+            buf.writeBytes(QUOTE);
+            buf.writeBytes(message.getId().toString().getBytes(getCharacterSet()));
+            buf.writeBytes(QUOTE);
+            buf.writeBytes(COMMA);
+        }
+
+        //EVENT
+        buf.writeBytes(EVENT);
+        buf.writeBytes(QUOTE);
+        buf.writeBytes(message.getEvent().getName().getBytes(getCharacterSet()));
+        buf.writeBytes(QUOTE);
+
+        //APP
+        if (message.getAppId() != null) {
+            buf.writeBytes(COMMA);
+            buf.writeBytes(APPID);
+            buf.writeBytes(QUOTE);
+            buf.writeBytes(message.getAppId().getBytes(getCharacterSet()));
+            buf.writeBytes(QUOTE);
+        }
+
+        //DATA
+        if (message.getData() != null) {
+            buf.writeBytes(COMMA);
+            buf.writeBytes(DATA);
+            buf.writeBytes(message.getData().getBytes(getCharacterSet()));
+        }
+
+        buf.writeBytes("}".getBytes(getCharacterSet()));
+        TextWebSocketFrame frame = new TextWebSocketFrame(buf);
+        logger.debug("Sending frame with data: " + frame.text());
+        return frame;
     }
-    if (message.getData() != null) {
-      buf.writeBytes(comma);
-      buf.writeBytes(DATA);
-      buf.writeBytes(message.getData().getBytes(defaultCharacterSet));
-    }
-    buf.writeBytes("}".getBytes(defaultCharacterSet));
-    TextWebSocketFrame frame = new TextWebSocketFrame(buf);
-    logger.debug("Sending frame with data: " + frame.text());
-    return frame;
-  }
 }

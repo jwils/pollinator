@@ -1,4 +1,4 @@
-package com.clover.push.publisher;
+package com.clover.push.server.service.redis;
 
 import com.clover.push.message.PushMessage;
 

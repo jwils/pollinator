@@ -14,24 +14,26 @@ import java.nio.charset.Charset;
 import java.util.List;
 
 
-
 /**
  * User: josh
  * Date: 1/3/14
  */
-public abstract class PushMessageEncoderHandler extends MessageToMessageEncoder<PushMessage> {
-  protected static final Charset defaultCharacterSet = CharsetUtil.UTF_8;
+public abstract class PushMessageEncoderHandler<T> extends MessageToMessageEncoder<PushMessage> {
+    private static final Logger logger = LoggerFactory.getLogger(PushMessageEncoderHandler.class);
 
-
-  private static final Logger logger = LoggerFactory.getLogger(PushMessageEncoderHandler.class);
-  @Override
-  protected void encode(ChannelHandlerContext ctx, PushMessage msg, List<Object> out) throws Exception {
-    try {
-      out.add(encode(ctx, msg));
-    } catch (IOException e) {
-      logger.error("Unable to encode PushMessage", e);
+    @Override
+    protected void encode(ChannelHandlerContext ctx, PushMessage msg, List<Object> out) throws Exception {
+        try {
+            out.add(encode(ctx, msg));
+        } catch (IOException e) {
+            logger.error("Unable to encode PushMessage", e);
+        }
     }
-  }
 
-  public abstract Object encode(ChannelHandlerContext ctx, PushMessage message) throws IOException;
+    public abstract T encode(ChannelHandlerContext ctx, PushMessage message) throws IOException;
+
+
+    protected static Charset getCharacterSet() {
+        return CharsetUtil.UTF_8;
+    }
 }

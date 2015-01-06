@@ -1,4 +1,4 @@
-package com.clover.push;
+package com.clover.push.util;
 
 import java.security.SecureRandom;
 import java.util.UUID;

@@ -5,13 +5,13 @@ package com.clover.push.message;
  * Date: 1/29/14
  */
 public class ConnectMessage {
-  private final String clientId;
+    private final String clientId;
 
-  public ConnectMessage(String clientId) {
-    this.clientId = clientId;
-  }
+    public ConnectMessage(String clientId) {
+        this.clientId = clientId;
+    }
 
-  public String getClientId() {
-    return clientId;
-  }
+    public String getClientId() {
+        return clientId;
+    }
 }
