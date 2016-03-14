@@ -228,16 +228,16 @@ public class WebSocketConnection implements PushConnection {
     }
 
     public interface Listener {
-        public void onConnect();
+        void onConnect();
 
-        public void onMessage(String message);
+        void onMessage(String message);
 
-        public void onMessage(byte[] data);
+        void onMessage(byte[] data);
 
-        public void onPing(byte[] pingData);
+        void onPing(byte[] pingData);
 
-        public void onDisconnect(int code, String reason);
+        void onDisconnect(int code, String reason);
 
-        public void onError(Exception error);
+        void onError(Exception error);
     }
 }

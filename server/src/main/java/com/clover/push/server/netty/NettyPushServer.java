@@ -58,7 +58,11 @@ public class NettyPushServer implements PushServer {
 
 
         pushMessageSubscriber.start();
-        serverFuture = new ServerBootstrap().channel(NioServerSocketChannel.class).group(new NioEventLoopGroup(4)).childHandler(pushInitializer).bind(8013);
+        serverFuture = new ServerBootstrap()
+            .channel(NioServerSocketChannel.class)
+            .group(new NioEventLoopGroup(4))
+            .childHandler(pushInitializer)
+            .bind(8013);
     }
 
     public void stop() {
